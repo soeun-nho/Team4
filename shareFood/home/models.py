@@ -32,7 +32,17 @@ class Delivery(models.Model):
     title = models.CharField(max_length=100, verbose_name="글제목")
     created_at = models.DateTimeField(verbose_name="구매 날짜와 시각", auto_now_add=True)
     location = models.CharField(max_length=100, verbose_name="위치")
-    minimumPrice = models.IntegerField(verbose_name="최소주문금액", default=0)
+    minimumPrice = models.IntegerField(verbose_name="최소주문금액", default=0) #입력안할시 0인데, 필수입력받을지 논의 필요
     link = models.CharField(max_length=100, verbose_name="배달지점링크")
     image = models.ImageField(verbose_name='작성이미지', blank=True, null=True, upload_to='post-image')
     content = models.CharField(max_length=100, verbose_name="내용")
+    is_completed = models.BooleanField(default=False) # False: 거래 중 / True: 거래 완료
+
+class DeliveryComment(models.Model):
+    post = models.ForeignKey(Delivery, null=True, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, null=True, on_delete=models.CASCADE)
+    created_at = models.DateField(auto_now_add=True)
+    content = models.TextField(max_length=100)
+
+    def __str__(self):
+        return self.content
