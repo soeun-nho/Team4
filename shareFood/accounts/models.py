@@ -5,7 +5,7 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.db import models
 
 class UserManager(BaseUserManager):
-    def create_user(self, name, phone, email, password=None, register=False):
+    def create_user(self, name, phone, email, password=None):
         if not name:
             raise ValueError('must have user name')
         if not phone:
@@ -21,7 +21,6 @@ class UserManager(BaseUserManager):
             name = name,
             phone = phone,
             email = email,
-            register = register,
         )
         user.set_password(password)
         user.save(using=self._db)
@@ -41,7 +40,7 @@ class User(AbstractBaseUser):
     name = models.CharField(default='', max_length=100, null=False, blank=False)
     phone = models.CharField(default='', max_length=100, null=False, blank=False, unique=True)
     email = models.CharField(default='', max_length=100, null=False, blank=False, unique=True)
-    register = models.BooleanField(verbose_name="간편 결제 등록 여부", default=False)
+   
     #password_check = models.CharField(default='', max_length=100, null=False, blank=False)
     # User 모델의 필수 field
     is_active = models.BooleanField(default=True)   
