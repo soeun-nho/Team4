@@ -4,10 +4,10 @@ from rest_framework.routers import DefaultRouter
 
 app_name = 'home'
 
-from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
 router.register(r'groceries', GroceryViewSet)
+router.register(r'deliveries', DeliveryViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
