@@ -8,4 +8,6 @@ router.register(r'deliveries', DeliveryViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
+    # path('deliveries/<int:delivery_id>/', DeliveryViewSet.as_view({'get': 'retrieve'}), name='delivery-detail'),
+
 ]
