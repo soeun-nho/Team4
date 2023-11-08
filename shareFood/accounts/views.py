@@ -14,6 +14,7 @@ from django.contrib.auth.hashers import make_password
 
 #회원가입 중복확인_최종
 class UserRegistration(APIView):
+    permission_classes = [AllowAny] #이 부분 추가
     def post(self, request):
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():

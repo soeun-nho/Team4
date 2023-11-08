@@ -1,15 +1,20 @@
 from django.shortcuts import render
 from rest_framework.response import Response
 from rest_framework.decorators import action
-from rest_framework import status
+from rest_framework import status,  filters
 from rest_framework import viewsets,  permissions
 from .models import *
 from .serializers import *
 from rest_framework import permissions
+from django.db.models import Q
 
 class IsOwnerOrReadOnly(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         if request.method in permissions.SAFE_METHODS:
+            return True
+        # return obj.writer == request.user
+        # 로그인하지 않은 사용자에게 GET 요청을 허용합니다.
+        if request.method == 'GET' and not request.user.is_authenticated:
             return True
         return obj.writer == request.user
 
@@ -60,22 +65,49 @@ class DeliveryViewSet(viewsets.ModelViewSet):
             return Response(status=status.HTTP_204_NO_CONTENT)
         else:
             return Response({'error': '권한이 없습니다.(작성자가 아님)'}, status=status.HTTP_403_FORBIDDEN)
+    
+    # 검색 기능 
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['title', 'content']
+    
+    # # 최근 검색어 저장
+    # def add_to_recent_searches(self, user, query):
+    #     RecentSearch.add_search(user, query)
+    #     recent_searches = RecentSearch.objects.filter(user=user).order_by('-created_at')[:RecentSearch.MAX_RECENT_SEARCHES]
+    #     self.recent_searches = [search.query for search in recent_searches]
+
+    # # 최근 검색어 반환
+    # @action(detail=False, methods=['get'])
+    # def recent_searches_list(self, request):
+    #     if not request.user.is_authenticated :
+    #         return Response({"message" : "로그인을 해주세요."}, status=status.HTTP_401_UNAUTHORIZED)
         
+    #     self.add_to_recent_searches(request.user, None)
+    #     recent_searches = RecentSearch.objects.filter(user=request.user).order_by('-created_at')[:RecentSearch.MAX_RECENT_SEARCHES]
+    #     searches = [search.query for search in recent_searches]
+    #     return Response(searches, status=status.HTTP_200_OK)
 
-class DeliveryCommentViewSet(viewsets.ModelViewSet):
-    queryset = DeliveryComment.objects.all()
-    serializer_class = DeliveryCommentSerializer
-    permission_classes = [IsCommentAuthorOrReadOnly]
+    #게시글 목록 조회(검색어필터링가능)
+    def list(self, request, *args, **kwargs):
+        search_query = request.query_params.get('search', None)
 
-    def perform_create(self, serializer):
-        delivery_id = self.kwargs['id']  # 이 부분에서 URL에서 delivery_id를 가져옵니다.
-        delivery = Delivery.objects.get(id=delivery_id)
-        serializer.save(post=delivery, user=self.request.user)
-    
-    # create 메서드 추가
-    def create(self, request, *args, **kwargs):
-        return super().create(request, *args, **kwargs)
-    
+        if search_query:
+            queryset = self.queryset.filter(Q(title__icontains=search_query) | Q(content__icontains=search_query))
+        else:
+            queryset = self.queryset  # 검색어가 없으면 모든 결과를 반환
+
+        if not queryset:
+            return Response({'message': '검색 결과가 없습니다.'}, status=status.HTTP_200_OK)
+        
+        # 나머지 코드는 그대로 두고 queryset만 변경
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
 
 class GroceryViewSet(viewsets.ModelViewSet):
     queryset = Grocery.objects.all().order_by('-id') # 최근글이 앞으로 오도록 정렬(default)
