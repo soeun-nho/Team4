@@ -18,7 +18,6 @@ class DeliveryCommentSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-
 class GroceryCommentSerializer(serializers.ModelSerializer):
     user = serializers.CharField(source='user.name', read_only=True)
     class Meta:
