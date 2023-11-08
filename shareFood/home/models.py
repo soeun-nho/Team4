@@ -16,6 +16,9 @@ class Grocery(models.Model):
     post_type = models.BooleanField(default=False) # False: 팔아요 / True: 같이 사요
     is_completed = models.BooleanField(default=False) # False: 거래 중 / True: 거래 완료
 
+    def __str__(self):
+        return self.title
+
 
 class GroceryComment(models.Model):
     post = models.ForeignKey(Grocery, null=True, on_delete=models.CASCADE)
