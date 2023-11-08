@@ -23,7 +23,7 @@ class IsOwnerOrReadOnly(permissions.BasePermission):
 
 # ModelViewSet: 필터, 검색, 정렬 용이
 class GroceryViewSet(viewsets.ModelViewSet):
-    queryset = Grocery.objects.all().order_by('-created_at') # 최근글이 앞으로 오도록 정렬(default)
+    queryset = Grocery.objects.all().order_by('-id') # 최근글이 앞으로 오도록 정렬(default)
     serializer_class = GrocerySerializer
     permission_classes = [IsOwnerOrReadOnly]
 
