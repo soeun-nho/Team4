@@ -17,12 +17,12 @@ class IsOwnerOrReadOnly(permissions.BasePermission):
             return True
 
         # 쓰기 권한은 글의 작성자에게만 허용.
-        return obj.writer == request.user
+        return obj.writer_id == request.user #이부분수정했어요
     
 class DeliveryViewSet(viewsets.ModelViewSet):
-    queryset = Delivery.objects.all()
+    queryset = Delivery.objects.all().order_by('-id')
     serializer_class = DeliverySerializer
-    permission_classes = [permissions.IsAuthenticated]  # 인증된 사용자만 허용
+    permission_classes = [permissions.IsAuthenticated, IsOwnerOrReadOnly]  # 인증된 사용자만 허용
 
     #글작성
     def perform_create(self, serializer):
