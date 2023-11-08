@@ -1,83 +1,45 @@
 from django.shortcuts import render, get_object_or_404
 from .models import GroceryComment, Grocery, Delivery
 from rest_framework import status
-from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework_simplejwt.authentication import JWTAuthentication
-from .serializers import GrocerySerializer, GroceryCommentSerializer, GroceryDetailSerializer
+from .serializers import GrocerySerializer, GroceryCommentSerializer
+
+from rest_framework.response import Response
+from rest_framework.decorators import action
+from rest_framework import status
+from rest_framework import viewsets, permissions
 
 
-# Create your views here.
+# 글의 작성자만 수정 권한
+class IsOwnerOrReadOnly(permissions.BasePermission):
+    def has_object_permission(self, request, view, obj):
+        # 읽기 권한 요청이 들어오면 인증여부 상관없이 허용 (GET)
+        if request.method in permissions.SAFE_METHODS:
+            return True
+
+        # 요청자(request.user)가 객체의 user와 동일한지 확인 (PUT, DELETE)
+        return obj.user == request.user
 
 
-class GroceryView(APIView):
-    authentication_classes = [JWTAuthentication]
+# ModelViewSet: 필터, 검색, 정렬 용이
+class GroceryViewSet(viewsets.ModelViewSet):
+    queryset = Grocery.objects.all().order_by('-created_at') # 최근글이 앞으로 오도록 정렬(default)
+    serializer_class = GrocerySerializer
+    permission_classes = [IsOwnerOrReadOnly]
 
-    def get(self, request):
-        post = Grocery.objects.all()
-        serializer = GrocerySerializer(post, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+    def perform_create(self, serializer):
+        serializer.save(user = self.request.user)
 
-    def post(self, request):
-        serializer = GrocerySerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save(user=request.user)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    # 거래 확정
+    @action(detail=True, methods=['PATCH'], permission_classes=[permissions.IsAuthenticated])
+    def confirm_purchase(self, request, pk=None):
+        grocery = self.get_object()
+
+        if request.user == grocery.customer:
+            grocery.is_completed = True
+            grocery.save()
+            return Response({'status': '거래가 확정되었습니다.'}, status=status.HTTP_200_OK)
         else:
-            return Response(serializer.error_messages, status=status.HTTP_400_BAD_REQUEST)
-
-class GroceryDetailView(APIView):   # 게시글 상세
-    authentication_classes = [JWTAuthentication]
-
-    def get(self, request, post_id):
-        post = get_object_or_404(Grocery, pk=post_id)
-        serializer = GroceryDetailSerializer(post)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def patch(self, request, post_id):
-        post = get_object_or_404(Grocery, pk=post_id)
-        serializer = GrocerySerializer(post, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save(user=request.user)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        else:
-            return Response(serializer.error_messages, status=status.HTTP_400_BAD_REQUEST)
-
-    def delete(self, request, post_id):
-        post = get_object_or_404(Grocery, pk=post_id)
-        post.delete()
-        return Response({'message': '삭제되었습니다.'}, status=status.HTTP_204_NO_CONTENT)
-
-
-class GroceryCommentView(APIView):   # 댓글 리스트
-    authentication_classes = [JWTAuthentication]
-
-    def get(self, request, post_id):
-        comment = GroceryComment.objects.filter(post=post_id)
-        serializer = GroceryCommentSerializer(comment, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def post(self, request, post_id):
-        serializer = GroceryCommentSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save(user=request.user, post_id=post_id)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        else:
-            return Response(serializer.error_messages, status=status.HTTP_400_BAD_REQUEST)
-
-class GroceryCommentDetailView(APIView):   # 댓글 상세
-    authentication_classes = [JWTAuthentication]
+            return Response({'error': '권한이 없습니다.'}, status=status.HTTP_403_FORBIDDEN)
     
-    def patch(self, request, post_id, comment_id):
-        comment = get_object_or_404(GroceryComment, pk=comment_id)
-        serializer = GroceryCommentSerializer(comment, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save(user=request.user, post_id=post_id)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        else:
-            return Response(serializer.error_messages, status=status.HTTP_400_BAD_REQUEST)
-    
-    def delete(self, request, post_id, comment_id):
-        comment = get_object_or_404(GroceryComment, pk=comment_id)
-        comment.delete()
-        return Response({'message': '삭제되었습니다.'}, status=status.HTTP_204_NO_CONTENT)
