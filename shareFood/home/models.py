@@ -73,3 +73,19 @@ class RecentSearch(models.Model):
 
             recent_search = cls(user=user, query=query)
             recent_search.save()
+
+#### grocery 좋아요 기능 ####
+
+class GroceryLike(models.Model):
+    post = models.ForeignKey(Grocery, null=True, on_delete=models.CASCADE, related_name='grocery_like')
+    user = models.ForeignKey(User, null=True, on_delete=models.CASCADE, related_name='grocery_like')
+
+    def __str__(self):
+        return self.user.name
+    
+class DeliveryLike(models.Model):
+    post = models.ForeignKey(Delivery, null=True, on_delete=models.CASCADE, related_name='delivery_like')
+    user = models.ForeignKey(User, null=True, on_delete=models.CASCADE, related_name='delivery_like')
+
+    def __str__(self):
+        return self.user.name

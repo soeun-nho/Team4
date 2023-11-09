@@ -257,3 +257,33 @@ class DeliveryCommentDetailView(APIView):
             return Response({'message': '삭제되었습니다.'}, status=status.HTTP_204_NO_CONTENT)
         else:
             return Response({'message': '댓글 작성자만 삭제할 수 있습니다.'}, status=status.HTTP_403_FORBIDDEN)
+
+
+### 좋아요 기능 ###
+
+class GroceryLikeView(APIView):
+    permission_classes = [IsOwnerOrReadOnly]
+
+    def post(self, request, post_id):
+        post = get_object_or_404(Grocery, pk=post_id)
+        serializer = GroceryLikeSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(user=request.user, post=post)
+            post.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.error_messages, status=status.HTTP_400_BAD_REQUEST)
+
+
+class DeliveryLikeView(APIView):
+    permission_classes = [IsOwnerOrReadOnly]
+
+    def post(self, request, post_id):
+        post = get_object_or_404(Delivery, pk=post_id)
+        serializer = DeliveryLikeSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(user=request.user, post=post)
+            post.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.error_messages, status=status.HTTP_400_BAD_REQUEST)
