@@ -12,6 +12,7 @@ class DeliverySerializer(serializers.ModelSerializer):
         serializer = DeliveryCommentSerializer(comments, many=True)
         return serializer.data
 
+
 class DeliveryCommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = DeliveryComment
@@ -32,9 +33,7 @@ class GrocerySerializer(serializers.ModelSerializer):
         
     class Meta:
         model = Grocery
-        fields = ['id', 'user', 'title', 'content', 'unit', 'location',
-                'price', 'created_at', 'image', 'buy_time','recruitment_num',
-                'post_type', 'is_completed', 'comments']
+        fields = '__all__'
         
     def get_comments(self, obj):
         comments = GroceryComment.objects.filter(post=obj)
