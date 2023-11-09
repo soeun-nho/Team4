@@ -22,14 +22,14 @@ class GroceryCommentSerializer(serializers.ModelSerializer):
     user = serializers.CharField(source='user.name', read_only=True)
     class Meta:
         model = GroceryComment
-        fields = ['id', 'post', 'user', 'created_at', 'content']
+        fields = ['id', 'post_id', 'user', 'created_at', 'content']
 
 
 
 class GrocerySerializer(serializers.ModelSerializer):
     user = serializers.CharField(source='user.name', read_only=True)
     comments = serializers.SerializerMethodField()
-    
+        
     class Meta:
         model = Grocery
         fields = ['id', 'user', 'title', 'content', 'unit', 'location',
