@@ -69,6 +69,12 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
+    #검색
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+        'rest_framework.filters.SearchFilter',  # 이 부분이 검색 필터링을 활성화합니다.
+    ],
+    
 }
 
 MIDDLEWARE = [
