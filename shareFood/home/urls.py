@@ -37,4 +37,7 @@ urlpatterns = [
 
     #마이페이지 _ 내게시글
     path('mypage/', UserProfileView.as_view(), name='mypage'),
+    
+    #최근검색어
+    path('api/recent-searches/', RecentSearchView.recent_searches_list, name='recent-searches-list'),
 ]

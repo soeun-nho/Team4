@@ -7,7 +7,7 @@ from .models import *
 from .serializers import *
 from rest_framework import permissions
 from rest_framework.exceptions import PermissionDenied
-
+from rest_framework.decorators import api_view
 
 from rest_framework.views import APIView
 
@@ -82,35 +82,27 @@ class DeliveryViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.SearchFilter]
     search_fields = ['title', 'content']
     
-    # # 최근 검색어 저장
-    # def add_to_recent_searches(self, user, query):
-    #     RecentSearch.add_search(user, query)
-    #     recent_searches = RecentSearch.objects.filter(user=user).order_by('-created_at')[:RecentSearch.MAX_RECENT_SEARCHES]
-    #     self.recent_searches = [search.query for search in recent_searches]
-
-    # # 최근 검색어 반환
-    # @action(detail=False, methods=['get'])
-    # def recent_searches_list(self, request):
-    #     if not request.user.is_authenticated :
-    #         return Response({"message" : "로그인을 해주세요."}, status=status.HTTP_401_UNAUTHORIZED)
-        
-    #     self.add_to_recent_searches(request.user, None)
-    #     recent_searches = RecentSearch.objects.filter(user=request.user).order_by('-created_at')[:RecentSearch.MAX_RECENT_SEARCHES]
-    #     searches = [search.query for search in recent_searches]
-    #     return Response(searches, status=status.HTTP_200_OK)
-
     #게시글 목록 조회(검색어필터링가능)
     def list(self, request, *args, **kwargs):
         search_query = request.query_params.get('search', None)
 
-        if search_query:
+        if search_query is not None:
             queryset = self.queryset.filter(Q(title__icontains=search_query) | Q(content__icontains=search_query))
         else:
             queryset = self.queryset  # 검색어가 없으면 모든 결과를 반환
 
-        if not queryset:
-            return Response({'message': '검색 결과가 없습니다.'}, status=status.HTTP_200_OK)
         
+        # 검색이 이루어졌을 때 최근 검색어를 저장
+        if request.user.is_authenticated:
+                RecentSearchView.add_to_recent_searches(request.user, search_query)
+        else:
+            queryset = self.queryset  # 검색어가 없으면 모든 결과를 반환
+
+
+        # if not queryset:
+        #     return Response({'message': '검색 결과가 없습니다.'}, status=status.HTTP_200_OK)
+        if not queryset.exists():
+            return Response({'message': '검색 결과가 없습니다.'}, status=status.HTTP_200_OK)
         # 나머지 코드는 그대로 두고 queryset만 변경
         page = self.paginate_queryset(queryset)
         if page is not None:
@@ -175,6 +167,12 @@ class GroceryViewSet(viewsets.ModelViewSet):
 
         if search_query is not None:
             queryset = self.queryset.filter(Q(title__icontains=search_query) | Q(content__icontains=search_query))
+        else:
+            queryset = self.queryset  # 검색어가 없으면 모든 결과를 반환
+
+        # 검색이 이루어졌을 때 최근 검색어를 저장
+        if request.user.is_authenticated:
+                RecentSearchView.add_to_recent_searches(request.user, search_query)
         else:
             queryset = self.queryset  # 검색어가 없으면 모든 결과를 반환
 
@@ -422,3 +420,25 @@ class UserProfileView(APIView):
 
 
         return Response(data, status=status.HTTP_200_OK)
+
+
+class RecentSearchView(APIView):
+    # 최대 저장 검색어 개수
+    MAX_RECENT_SEARCHES = 5
+
+    @staticmethod
+    def add_to_recent_searches(user, query):
+        # 최근 검색어 저장
+        RecentSearch.add_search(user, query)
+        recent_searches = RecentSearch.objects.filter(user=user).order_by('-created_at')[:RecentSearchView.MAX_RECENT_SEARCHES]
+        return [search.query for search in recent_searches]
+
+    @api_view(['GET'])
+    def recent_searches_list(request):
+        if not request.user.is_authenticated:
+            return Response({"message": "로그인을 해주세요."}, status=status.HTTP_401_UNAUTHORIZED)
+
+        search_query = request.query_params.get('search', None)
+        recent_searches = RecentSearchView.add_to_recent_searches(request.user, search_query)
+
+        return Response({'recent_searches': recent_searches}, status=status.HTTP_200_OK)
