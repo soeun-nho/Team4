@@ -9,7 +9,7 @@ class DeliverySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Delivery
-        fields = ['user', 'title', 'content', 'location',
+        fields = ['id','user', 'title', 'content', 'location',
                 'minimumPrice', 'created_at', 'image', 'link',
                 'is_completed', 'comments', 'like_cnt', 'is_liked']
     
@@ -20,9 +20,10 @@ class DeliverySerializer(serializers.ModelSerializer):
 
 
 class DeliveryCommentSerializer(serializers.ModelSerializer):
+    user = serializers.CharField(source='user.name', read_only=True)
     class Meta:
         model = DeliveryComment
-        fields = '__all__'
+        fields = ['id', 'post_id', 'user', 'created_at', 'content']
 
 
 class GroceryCommentSerializer(serializers.ModelSerializer):
