@@ -32,6 +32,7 @@ class GroceryComment(models.Model):
     
 
 class Delivery(models.Model):
+    id = models.AutoField(primary_key=True, null=False, blank=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
     title = models.CharField(max_length=100, verbose_name="글제목")
     created_at = models.DateTimeField(verbose_name="구매 날짜와 시각", auto_now_add=True)
