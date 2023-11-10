@@ -15,6 +15,7 @@ class Grocery(models.Model):
     recruitment_num = models.IntegerField(null=True)
     post_type = models.BooleanField(default=False) # False: 팔아요 / True: 같이 사요
     is_completed = models.BooleanField(default=False) # False: 거래 중 / True: 거래 완료
+    is_liked = models.BooleanField(default=False)
 
     def __str__(self):
         return self.title
@@ -40,6 +41,8 @@ class Delivery(models.Model):
     image = models.ImageField(verbose_name='작성이미지', blank=True, null=True, upload_to='post-image')
     content = models.CharField(max_length=100, verbose_name="내용")
     is_completed = models.BooleanField(default=False) # False: 거래 중 / True: 거래 완료
+    is_liked = models.BooleanField(default=False)
+
 
 class DeliveryComment(models.Model):
     post = models.ForeignKey(Delivery, null=True, on_delete=models.CASCADE)

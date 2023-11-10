@@ -6,6 +6,8 @@ from rest_framework import viewsets,  permissions
 from .models import *
 from .serializers import *
 from rest_framework import permissions
+from rest_framework.exceptions import PermissionDenied
+
 
 from rest_framework.views import APIView
 
@@ -22,24 +24,15 @@ class IsOwnerOrReadOnly(permissions.BasePermission):
             return True
         return obj.user == request.user
 
-# class IsCommentAuthorOrReadOnly(permissions.BasePermission):
-#     def has_permission(self, request, view):
-#         # Allow GET, HEAD, or OPTIONS requests without checking further
-#         if request.method in permissions.SAFE_METHODS:
-#             return True
-#         return request.user and request.user.is_authenticated
-
-#     def has_object_permission(self, request, view, obj):
-#         # Allow the author of the comment to edit or delete it
-#         return obj.user == request.user
-
 class IsCommentAuthorOrReadOnly(permissions.BasePermission):
-    def has_object_permission(self, request, view, obj):
-        # 읽기 권한은 모든 요청에 허용
+    def has_permission(self, request, view):
+        # Allow GET, HEAD, or OPTIONS requests without checking further
         if request.method in permissions.SAFE_METHODS:
             return True
+        return request.user and request.user.is_authenticated
 
-        # 댓글을 수정하거나 삭제하려는 사용자가 댓글의 작성자와 같은 경우에만 허용
+    def has_object_permission(self, request, view, obj):
+        # Allow the author of the comment to edit or delete it
         return obj.user == request.user
 
 
@@ -51,9 +44,11 @@ class DeliveryViewSet(viewsets.ModelViewSet):
     serializer_class = DeliverySerializer
     permission_classes = [IsOwnerOrReadOnly] 
 
-    #글작성
     def perform_create(self, serializer):
+        if not self.request.user.is_authenticated:
+            raise PermissionDenied('로그인이 필요합니다.')
         serializer.save(user=self.request.user)
+
     
     #상태변경
     @action(detail=True, methods=['PATCH'], permission_classes=[IsOwnerOrReadOnly])
@@ -79,7 +74,7 @@ class DeliveryViewSet(viewsets.ModelViewSet):
 
         if request.user == delivery.user:
             delivery.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
+            return Response({'message': '삭제되었습니다.'}, status=status.HTTP_204_NO_CONTENT)
         else:
             return Response({'error': '권한이 없습니다.(작성자가 아님)'}, status=status.HTTP_403_FORBIDDEN)
     
@@ -126,13 +121,20 @@ class DeliveryViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
+#### Grocery 기능 ####
+
 class GroceryViewSet(viewsets.ModelViewSet):
     queryset = Grocery.objects.all().order_by('-id') # 최근글이 앞으로 오도록 정렬(default)
     serializer_class = GrocerySerializer
     permission_classes = [IsOwnerOrReadOnly]
 
+    #def perform_create(self, serializer):
+        #serializer.save(user = self.request.user)
+
     def perform_create(self, serializer):
-        serializer.save(user = self.request.user)
+        if not self.request.user.is_authenticated:
+            raise PermissionDenied('로그인이 필요합니다.')
+        serializer.save(user=self.request.user)
 
     #상태변경
     @action(detail=True, methods=['PATCH'], permission_classes=[IsOwnerOrReadOnly])
@@ -158,11 +160,11 @@ class GroceryViewSet(viewsets.ModelViewSet):
 
         if request.user == grocery.user:
             grocery.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
+            return Response({'message': '삭제되었습니다.'}, status=status.HTTP_204_NO_CONTENT)
         else:
             return Response({'error': '권한이 없습니다.(작성자가 아님)'}, status=status.HTTP_403_FORBIDDEN)
         
-#### grocery 댓글 기능 ####
+## grocery 댓글 기능 ##
 
 class GroceryCommentView(APIView):   # 댓글 리스트
     permission_classes = [IsCommentAuthorOrReadOnly]
@@ -259,21 +261,38 @@ class DeliveryCommentDetailView(APIView):
             return Response({'message': '댓글 작성자만 삭제할 수 있습니다.'}, status=status.HTTP_403_FORBIDDEN)
 
 
-### 좋아요 기능 ###
+### Grocery 좋아요 기능 ###
 
-class GroceryLikeView(APIView):
+# class GroceryLikeView(APIView):
+#     permission_classes = [IsOwnerOrReadOnly]
+
+#     def post(self, request, post_id):
+#         post = get_object_or_404(Grocery, pk=post_id)
+#         serializer = GroceryLikeSerializer(data=request.data)
+#         if serializer.is_valid():
+#             serializer.save(user=request.user, post=post)
+#             post.save()
+#             return Response(serializer.data, status=status.HTTP_201_CREATED)
+#         else:
+#             return Response(serializer.error_messages, status=status.HTTP_400_BAD_REQUEST)
+
+class GroceryLikeView(APIView):   # 게시글 좋아요
     permission_classes = [IsOwnerOrReadOnly]
-
+    
     def post(self, request, post_id):
         post = get_object_or_404(Grocery, pk=post_id)
         serializer = GroceryLikeSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save(user=request.user, post=post)
+            post.is_liked = False if post.is_liked else True
             post.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.error_messages, status=status.HTTP_400_BAD_REQUEST)
 
+
+
+### Delivery 좋아요 기능 ###
 
 class DeliveryLikeView(APIView):
     permission_classes = [IsOwnerOrReadOnly]
@@ -283,6 +302,7 @@ class DeliveryLikeView(APIView):
         serializer = DeliveryLikeSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save(user=request.user, post=post)
+            post.is_liked = False if post.is_liked else True
             post.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
