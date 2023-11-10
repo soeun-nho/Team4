@@ -16,7 +16,7 @@ urlpatterns = [
     # 배달 댓글 조회, 생성
     path('deliveries/<int:post_id>/comments/', DeliveryCommentView.as_view(), name='delivery-comments-list'),
     # 배달 댓글 삭제, 수정
-    path('deliveries/<int:post_id>/comments/', DeliveryCommentDetailView.as_view(), name='delivery-comments-create'),
+    path('deliveries/<int:post_id>/comments/<int:comment_id>/', DeliveryCommentDetailView.as_view(), name='delivery-comments-create'),
 
     # 식료품 댓글 조회, 생성
     path('groceries/<int:post_id>/comments/', GroceryCommentView.as_view(), name='grocery-comments-list'),
