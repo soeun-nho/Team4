@@ -368,12 +368,27 @@ class UserProfileView(APIView):
         delivery_completed = delivery_all.filter(is_completed=True)
         delivery_serializer_completed = DeliverySerializer(delivery_completed, many=True)
 
+        # GroceryLike 모델에서 user가 현재 사용자인 좋아요 정보 가져오기
+        liked_groceries = GroceryLike.objects.filter(user=request.user)
+        liked_grocery_ids = liked_groceries.values_list('post_id', flat=True)
+        liked_groceries_data = Grocery.objects.filter(id__in=liked_grocery_ids)
+        liked_groceries_serializer = GrocerySerializer(liked_groceries_data, many=True)
+
+        # DeliveryLike 모델에서 user가 현재 사용자인 좋아요 정보 가져오기
+        liked_deliveries = DeliveryLike.objects.filter(user=request.user)
+        liked_delivery_ids = liked_deliveries.values_list('post_id', flat=True)
+        liked_deliveries_data = Delivery.objects.filter(id__in=liked_delivery_ids)
+        liked_deliveries_serializer = DeliverySerializer(liked_deliveries_data, many=True)
+
+        
         data = {
             'profile': profile_data,
             'grocery_all': grocery_serializer_all.data,
             'grocery_completed': grocery_serializer_completed.data,
             'delivery_all': delivery_serializer_all.data,
             'delivery_completed': delivery_serializer_completed.data,
+            'liked_groceries': liked_groceries_serializer.data,
+            'liked_deliveries': liked_deliveries_serializer.data,
         }
 
 
