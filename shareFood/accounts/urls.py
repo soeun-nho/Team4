@@ -1,12 +1,11 @@
 from django.urls import path, include
 from . import views
 from rest_framework import urls
+# from dj_rest_auth.views import LoginView
 
 urlpatterns =[
     path('signup/', views.UserRegistration.as_view()),
+    #path('customlogin/', views.CustomLoginView.as_view(), name='custom-login'), 커스텀로그인(시도중)
     path('', include('dj_rest_auth.urls')),
-    # path('api/forgot-email/', views.FindUserEmailView.as_view(), name='find-user-email'),
-    # path('api/forgot-password/', views.GetUserPasswordView.as_view(), name='get-user-password'),
-    # path('api/user-info/', views.UserExistence.as_view(), name='check-user-existence'),
-    # path('api/change-password/', views.ChangePassword.as_view(), name='change-password'),
+
 ]
