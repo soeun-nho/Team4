@@ -164,6 +164,33 @@ class GroceryViewSet(viewsets.ModelViewSet):
         else:
             return Response({'error': '권한이 없습니다.(작성자가 아님)'}, status=status.HTTP_403_FORBIDDEN)
         
+
+    # 검색 기능 
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['title', 'content']
+
+    #게시글 목록 조회(검색어필터링가능)
+    def list(self, request, *args, **kwargs):
+        search_query = request.query_params.get('search', None)
+
+        if search_query is not None:
+            queryset = self.queryset.filter(Q(title__icontains=search_query) | Q(content__icontains=search_query))
+        else:
+            queryset = self.queryset  # 검색어가 없으면 모든 결과를 반환
+
+        if not queryset.exists():
+            return Response({'message': '검색 결과가 없습니다.'}, status=status.HTTP_200_OK)
+        
+        # 나머지 코드는 그대로 두고 queryset만 변경
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+
 ## grocery 댓글 기능 ##
 
 class GroceryCommentView(APIView):   # 댓글 리스트
@@ -307,3 +334,23 @@ class DeliveryLikeView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.error_messages, status=status.HTTP_400_BAD_REQUEST)
+        
+
+
+from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from .models import Grocery, Delivery
+from .serializers import GrocerySerializer, DeliverySerializer
+
+class MyPostsViewSet(viewsets.ModelViewSet):
+    serializer_class = GrocerySerializer  # You can use GrocerySerializer or DeliverySerializer based on your requirements
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        grocery_posts = Grocery.objects.filter(user=user).order_by('-id')
+        delivery_posts = Delivery.objects.filter(user=user).order_by('-id')
+        posts = list(grocery_posts) + list(delivery_posts)
+        posts.sort(key=lambda x: x.created_at, reverse=True)  # Sort by created_at in descending order
+        return posts

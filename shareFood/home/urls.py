@@ -8,7 +8,7 @@ app_name = 'home'
 router = DefaultRouter()
 router.register(r'groceries', GroceryViewSet)
 router.register(r'deliveries', DeliveryViewSet)
-
+# router.register(r'my-posts', MyPostsViewSet, basename='my-posts')
 
 urlpatterns = [
     path('', include(router.urls)),
@@ -30,5 +30,7 @@ urlpatterns = [
 
     # 배달 좋아요 기능
     path('deliveries/<int:post_id>/like/', DeliveryLikeView.as_view()),
+    
+ 
 
 ]
