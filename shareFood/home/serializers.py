@@ -9,7 +9,7 @@ class DeliverySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Delivery
-        fields = ['id','user', 'title', 'content', 'location',
+        fields = ['id', 'user', 'title', 'content', 'location',
                 'minimumPrice', 'created_at', 'image', 'link',
                 'is_completed', 'comments', 'like_cnt', 'is_liked']
     
