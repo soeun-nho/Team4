@@ -30,7 +30,8 @@ urlpatterns = [
 
     # 배달 좋아요 기능
     path('deliveries/<int:post_id>/like/', DeliveryLikeView.as_view()),
-    
- 
 
+    #마이페이지 _ 내게시글
+    path('mypage/', UserProfileView.as_view(), name='mypage'),
+ 
 ]

@@ -337,20 +337,44 @@ class DeliveryLikeView(APIView):
         
 
 
-from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-from .models import Grocery, Delivery
-from .serializers import GrocerySerializer, DeliverySerializer
+# 마이페이지
+class UserProfileView(APIView):
+    def get(self, request):
+        if not request.user.is_authenticated:
+            return Response({"message": "로그인을 해주세요."}, status=status.HTTP_401_UNAUTHORIZED)
 
-class MyPostsViewSet(viewsets.ModelViewSet):
-    serializer_class = GrocerySerializer  # You can use GrocerySerializer or DeliverySerializer based on your requirements
-    permission_classes = [IsAuthenticated]
+        user = request.user
 
-    def get_queryset(self):
-        user = self.request.user
-        grocery_posts = Grocery.objects.filter(user=user).order_by('-id')
-        delivery_posts = Delivery.objects.filter(user=user).order_by('-id')
-        posts = list(grocery_posts) + list(delivery_posts)
-        posts.sort(key=lambda x: x.created_at, reverse=True)  # Sort by created_at in descending order
-        return posts
+        profile_data = {
+            'id' : user.id,
+            'name' : user.name,
+            'email': user.email,
+            'phone': user.phone,
+        }
+
+         # Grocery 모델에서 모든 데이터 가져오기
+        grocery_all = Grocery.objects.filter(user=request.user)
+        grocery_serializer_all = GrocerySerializer(grocery_all, many=True)
+
+        # Delivery 모델에서 모든 데이터 가져오기
+        delivery_all = Delivery.objects.filter(user=request.user)
+        delivery_serializer_all = DeliverySerializer(delivery_all, many=True)
+
+        # Grocery 모델에서 is_completed=True인 데이터만 필터링
+        grocery_completed = grocery_all.filter(is_completed=True)
+        grocery_serializer_completed = GrocerySerializer(grocery_completed, many=True)
+
+        # Delivery 모델에서 is_completed=True인 데이터만 필터링
+        delivery_completed = delivery_all.filter(is_completed=True)
+        delivery_serializer_completed = DeliverySerializer(delivery_completed, many=True)
+
+        data = {
+            'profile': profile_data,
+            'grocery_all': grocery_serializer_all.data,
+            'grocery_completed': grocery_serializer_completed.data,
+            'delivery_all': delivery_serializer_all.data,
+            'delivery_completed': delivery_serializer_completed.data,
+        }
+
+
+        return Response(data, status=status.HTTP_200_OK)
