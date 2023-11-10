@@ -100,3 +100,18 @@ class DeliveryLikeSerializer(serializers.ModelSerializer):
             post.save()
         
         return delivery_like
+    
+
+class DeliveryApplicationSerializer(serializers.ModelSerializer):
+    user = serializers.CharField(source='user.name', read_only=True)
+
+    class Meta:
+        model = DeliveryApplication
+        fields = '__all__'
+
+class GroceryApplicationSerializer(serializers.ModelSerializer):
+    user = serializers.CharField(source='user.name', read_only=True)
+
+    class Meta:
+        model = GroceryApplication
+        fields = '__all__'

@@ -1,5 +1,7 @@
 from django.db import models
 from accounts.models import User
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 
 class Grocery(models.Model):
     id = models.AutoField(primary_key=True, null=False, blank=False)
@@ -92,3 +94,20 @@ class DeliveryLike(models.Model):
 
     def __str__(self):
         return self.user.name
+    
+class DeliveryApplication(models.Model):
+    user = models.ForeignKey(User, null=True, on_delete=models.CASCADE)
+    post = models.ForeignKey(Delivery, null=True, on_delete=models.CASCADE, related_name='delivery_applications')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.name} applied on {self.post}"
+    
+
+class GroceryApplication(models.Model):
+    user = models.ForeignKey(User, null=True, on_delete=models.CASCADE)
+    post = models.ForeignKey(Grocery, null=True, on_delete=models.CASCADE, related_name='grocery_applications')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.name} applied on {self.post}"

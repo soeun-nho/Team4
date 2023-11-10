@@ -335,7 +335,26 @@ class DeliveryLikeView(APIView):
         else:
             return Response(serializer.error_messages, status=status.HTTP_400_BAD_REQUEST)
         
+class DeliveryApplicationView(APIView):
+    def post(self, request, post_id):
+        post = get_object_or_404(Delivery, pk=post_id)
+        serializer = DeliveryApplicationSerializer(data={'user': request.user.id, 'post': post_id})
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+class GroceryApplicationView(APIView):
+    def post(self, request, post_id):
+        post = get_object_or_404(Grocery, pk=post_id)
+        serializer = GroceryApplicationSerializer(data={'user': request.user.id, 'post': post_id})
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
 
 # 마이페이지
 class UserProfileView(APIView):
@@ -380,7 +399,15 @@ class UserProfileView(APIView):
         liked_deliveries_data = Delivery.objects.filter(id__in=liked_delivery_ids)
         liked_deliveries_serializer = DeliverySerializer(liked_deliveries_data, many=True)
 
-        
+         # 사용자가 신청한 Grocery 게시글 조회
+        grocery_applications = GroceryApplication.objects.filter(user=request.user)
+        grocery_applications_serializer = GroceryApplicationSerializer(grocery_applications, many=True)
+
+        # 사용자가 신청한 Delivery 게시글 조회
+        delivery_applications = DeliveryApplication.objects.filter(user=request.user)
+        delivery_applications_serializer = DeliveryApplicationSerializer(delivery_applications, many=True)
+
+
         data = {
             'profile': profile_data,
             'grocery_all': grocery_serializer_all.data,
@@ -389,6 +416,8 @@ class UserProfileView(APIView):
             'delivery_completed': delivery_serializer_completed.data,
             'liked_groceries': liked_groceries_serializer.data,
             'liked_deliveries': liked_deliveries_serializer.data,
+            'grocery_applications': grocery_applications_serializer.data,
+            'delivery_applications': delivery_applications_serializer.data,
         }
 
 

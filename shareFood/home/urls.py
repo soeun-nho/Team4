@@ -31,7 +31,10 @@ urlpatterns = [
     # 배달 좋아요 기능
     path('deliveries/<int:post_id>/like/', DeliveryLikeView.as_view()),
 
+    #사용자 신청
+    path('apply/delivery/<int:post_id>/', DeliveryApplicationView.as_view(), name='delivery-application'),
+    path('apply/grocery/<int:post_id>/', GroceryApplicationView.as_view(), name='grocery-application'),
+
     #마이페이지 _ 내게시글
     path('mypage/', UserProfileView.as_view(), name='mypage'),
- 
 ]
