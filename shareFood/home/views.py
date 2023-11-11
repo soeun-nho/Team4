@@ -474,9 +474,8 @@ class GroceryApplicationView(APIView):
 from haversine import haversine, Unit
 
 
-class NearInfoView(APIView):
+class DeliveryNearInfoView(APIView):
     def get(self, request, post_id):
-        #try:
         current_post = get_object_or_404(Delivery, pk=post_id)
         current_latitude = current_post.latitude
         current_longitude = current_post.longitude
@@ -497,6 +496,28 @@ class NearInfoView(APIView):
         serialized_data = DeliverySerializer(near_position_infos, many=True)
 
         return Response(serialized_data.data)
+
+
+class GroceryNearInfoView(APIView):
+    def get(self, request, post_id):
+        current_post = get_object_or_404(Grocery, pk=post_id)
+        current_latitude = current_post.latitude
+        current_longitude = current_post.longitude
+        current_position = (current_latitude, current_longitude)
+
+        # Define the proximity range
+        proximity_distance = 2  # Assume 2 kilometers
+
+        # Find other posts within the proximity range
+        position_infos = Grocery.objects.exclude(pk=post_id).filter(
+            latitude__range=(current_latitude - 0.01, current_latitude + 0.01),
+            longitude__range=(current_longitude - 0.015, current_longitude + 0.015)
+        )
+
+        near_position_infos = [info for info in position_infos
+                              if haversine(current_position, (info.latitude, info.longitude)) <= proximity_distance]
         
-        # return near_position_infos
+        serialized_data = GrocerySerializer(near_position_infos, many=True)
+
+        return Response(serialized_data.data)
    

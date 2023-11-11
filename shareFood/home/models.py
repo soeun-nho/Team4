@@ -36,8 +36,8 @@ class Grocery(models.Model):
     post_type = models.BooleanField(default=False) # False: 팔아요 / True: 같이 사요
     is_completed = models.BooleanField(default=False) # False: 거래 중 / True: 거래 완료
     is_liked = models.BooleanField(default=False)
-    latitude = models.CharField(max_length=100, null=False)
-    longitude = models.CharField(max_length=100, null=False)
+    latitude = models.FloatField(max_length=100,null=False)
+    longitude = models.FloatField(max_length=100, null=False)
 
     def __str__(self):
         return self.title
@@ -118,7 +118,3 @@ class RecentSearch(models.Model):
 
             recent_search = cls(user=user, query=query)
             recent_search.save()
-
-class Position(models.Model):
-    latitude = models.FloatField()
-    longitude = models.FloatField()
