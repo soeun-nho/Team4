@@ -13,12 +13,11 @@ from rest_framework.views import APIView
 
 from django.db.models import Q
 
-
+#권한설정
 class IsOwnerOrReadOnly(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         if request.method in permissions.SAFE_METHODS:
             return True
-    
         # 로그인하지 않은 사용자에게 GET 요청을 허용합니다.
         if request.method == 'GET' and not request.user.is_authenticated:
             return True
@@ -30,15 +29,12 @@ class IsCommentAuthorOrReadOnly(permissions.BasePermission):
         if request.method in permissions.SAFE_METHODS:
             return True
         return request.user and request.user.is_authenticated
-
+    
     def has_object_permission(self, request, view, obj):
         # Allow the author of the comment to edit or delete it
         return obj.user == request.user
 
-
-
-
-
+#게시글 CRUD
 class DeliveryViewSet(viewsets.ModelViewSet):
     queryset = Delivery.objects.all().order_by('-id')
     serializer_class = DeliverySerializer
@@ -78,41 +74,32 @@ class DeliveryViewSet(viewsets.ModelViewSet):
         else:
             return Response({'error': '권한이 없습니다.(작성자가 아님)'}, status=status.HTTP_403_FORBIDDEN)
     
-    # 검색 기능 
+    # 검색
     filter_backends = [filters.SearchFilter]
     search_fields = ['title', 'content']
     
-    #게시글 목록 조회(검색어필터링가능)
+    #게시글 목록 조회 (검색/상태로 필터링)
     def list(self, request, *args, **kwargs):
         search_query = request.query_params.get('search', None)
-
-        #판매완료 아닌글만
         is_completed = request.query_params.get('is_completed', None)
 
-        if is_completed is not None:
-            queryset = self.queryset.filter(is_completed=is_completed.lower() == 'true')
-        else:
-            queryset = self.queryset.all()
+        # 기본 queryset은 모든 게시글
+        queryset = self.queryset.all()
 
-
+        # 검색한 경우 또는 판매 완료 아닌 글만 필터링
         if search_query is not None:
-            queryset = self.queryset.filter(Q(title__icontains=search_query) | Q(content__icontains=search_query))
-        else:
-            queryset = self.queryset  # 검색어가 없으면 모든 결과를 반환
+            queryset = queryset.filter(Q(title__icontains=search_query) | Q(content__icontains=search_query))
+    
+        if is_completed is not None:
+            queryset = queryset.filter(is_completed=is_completed.lower() == 'true')
 
         
         # 검색이 이루어졌을 때 최근 검색어를 저장
-        if request.user.is_authenticated:
-                RecentSearchView.add_to_recent_searches(request.user, search_query)
-        else:
-            queryset = self.queryset  # 검색어가 없으면 모든 결과를 반환
+        if request.user.is_authenticated and search_query is not None:
+            RecentSearchView.add_to_recent_searches(request.user, search_query)
 
-
-        # if not queryset:
-        #     return Response({'message': '검색 결과가 없습니다.'}, status=status.HTTP_200_OK)
         if not queryset.exists():
             return Response({'message': '검색 결과가 없습니다.'}, status=status.HTTP_200_OK)
-        
         
         # 나머지 코드는 그대로 두고 queryset만 변경
         page = self.paginate_queryset(queryset)
@@ -122,9 +109,6 @@ class DeliveryViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
-
-
-#### Grocery 기능 ####
 
 class GroceryViewSet(viewsets.ModelViewSet):
     queryset = Grocery.objects.all().order_by('-id') # 최근글이 앞으로 오도록 정렬(default)
@@ -172,27 +156,25 @@ class GroceryViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.SearchFilter]
     search_fields = ['title', 'content']
 
-    #게시글 목록 조회(검색어필터링가능)
+    #게시글 목록 조회 (검색/상태로 필터링)
     def list(self, request, *args, **kwargs):
         search_query = request.query_params.get('search', None)
-        is_completed= request.query_params.get('is_completed', None) #판매상태체크
+        is_completed = request.query_params.get('is_completed', None)
 
-        if is_completed is not None:
-            queryset = self.queryset.filter(is_completed=is_completed.lower() == 'true')
-        else:   
-            queryset = self.queryset.all()
+        # 기본 queryset은 모든 게시글
+        queryset = self.queryset.all()
 
-
+        # 검색한 경우 또는 판매 완료 아닌 글만 필터링
         if search_query is not None:
-            queryset = self.queryset.filter(Q(title__icontains=search_query) | Q(content__icontains=search_query))
-        else:
-            queryset = self.queryset  # 검색어가 없으면 모든 결과를 반환
+            queryset = queryset.filter(Q(title__icontains=search_query) | Q(content__icontains=search_query))
+    
+        if is_completed is not None:
+            queryset = queryset.filter(is_completed=is_completed.lower() == 'true')
 
+        
         # 검색이 이루어졌을 때 최근 검색어를 저장
-        if request.user.is_authenticated:
-                RecentSearchView.add_to_recent_searches(request.user, search_query)
-        else:
-            queryset = self.queryset  # 검색어가 없으면 모든 결과를 반환
+        if request.user.is_authenticated and search_query is not None:
+            RecentSearchView.add_to_recent_searches(request.user, search_query)
 
         if not queryset.exists():
             return Response({'message': '검색 결과가 없습니다.'}, status=status.HTTP_200_OK)
@@ -206,8 +188,22 @@ class GroceryViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
+#댓글 CR
+class DeliveryCommentView(APIView):   # 댓글 리스트
+    permission_classes = [IsCommentAuthorOrReadOnly]
 
-## grocery 댓글 기능 ##
+    def get(self, request, post_id):
+        comment = DeliveryComment.objects.filter(post=post_id)
+        serializer = DeliveryCommentSerializer(comment, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request, post_id):
+        serializer = DeliveryCommentSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(user=request.user, post_id=post_id)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.error_messages, status=status.HTTP_400_BAD_REQUEST)
 
 class GroceryCommentView(APIView):   # 댓글 리스트
     permission_classes = [IsCommentAuthorOrReadOnly]
@@ -225,6 +221,33 @@ class GroceryCommentView(APIView):   # 댓글 리스트
         else:
             return Response(serializer.error_messages, status=status.HTTP_400_BAD_REQUEST)
 
+#댓글 UD
+class DeliveryCommentDetailView(APIView):
+    permission_classes = [IsCommentAuthorOrReadOnly]
+    
+    def patch(self, request, post_id, comment_id):
+        comment = get_object_or_404(DeliveryComment, pk=comment_id)
+        
+        # 댓글 작성자만 수정할 수 있도록 검사
+        if comment.user == request.user:
+            serializer = DeliveryCommentSerializer(comment, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save(user=request.user, post_id=post_id)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            else:
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({'message': '댓글 작성자만 수정할 수 있습니다.'}, status=status.HTTP_403_FORBIDDEN)
+
+    def delete(self, request, post_id, comment_id):
+        comment = get_object_or_404(DeliveryComment, pk=comment_id)
+
+        # 댓글 작성자만 삭제할 수 있도록 검사
+        if comment.user == request.user:
+            comment.delete()
+            return Response({'message': '삭제되었습니다.'}, status=status.HTTP_204_NO_CONTENT)
+        else:
+            return Response({'message': '댓글 작성자만 삭제할 수 있습니다.'}, status=status.HTTP_403_FORBIDDEN)
 
 class GroceryCommentDetailView(APIView):
     permission_classes = [IsCommentAuthorOrReadOnly]
@@ -253,90 +276,7 @@ class GroceryCommentDetailView(APIView):
         else:
             return Response({'message': '댓글 작성자만 삭제할 수 있습니다.'}, status=status.HTTP_403_FORBIDDEN)
 
-
-
-
-
-#### Delivery 댓글 기능  ####
-
-class DeliveryCommentView(APIView):   # 댓글 리스트
-    permission_classes = [IsCommentAuthorOrReadOnly]
-
-    def get(self, request, post_id):
-        comment = DeliveryComment.objects.filter(post=post_id)
-        serializer = DeliveryCommentSerializer(comment, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def post(self, request, post_id):
-        serializer = DeliveryCommentSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save(user=request.user, post_id=post_id)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        else:
-            return Response(serializer.error_messages, status=status.HTTP_400_BAD_REQUEST)
-
-
-class DeliveryCommentDetailView(APIView):
-    permission_classes = [IsCommentAuthorOrReadOnly]
-    
-    def patch(self, request, post_id, comment_id):
-        comment = get_object_or_404(DeliveryComment, pk=comment_id)
-        
-        # 댓글 작성자만 수정할 수 있도록 검사
-        if comment.user == request.user:
-            serializer = DeliveryCommentSerializer(comment, data=request.data, partial=True)
-            if serializer.is_valid():
-                serializer.save(user=request.user, post_id=post_id)
-                return Response(serializer.data, status=status.HTTP_200_OK)
-            else:
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            return Response({'message': '댓글 작성자만 수정할 수 있습니다.'}, status=status.HTTP_403_FORBIDDEN)
-
-    def delete(self, request, post_id, comment_id):
-        comment = get_object_or_404(DeliveryComment, pk=comment_id)
-
-        # 댓글 작성자만 삭제할 수 있도록 검사
-        if comment.user == request.user:
-            comment.delete()
-            return Response({'message': '삭제되었습니다.'}, status=status.HTTP_204_NO_CONTENT)
-        else:
-            return Response({'message': '댓글 작성자만 삭제할 수 있습니다.'}, status=status.HTTP_403_FORBIDDEN)
-
-
-### Grocery 좋아요 기능 ###
-
-# class GroceryLikeView(APIView):
-#     permission_classes = [IsOwnerOrReadOnly]
-
-#     def post(self, request, post_id):
-#         post = get_object_or_404(Grocery, pk=post_id)
-#         serializer = GroceryLikeSerializer(data=request.data)
-#         if serializer.is_valid():
-#             serializer.save(user=request.user, post=post)
-#             post.save()
-#             return Response(serializer.data, status=status.HTTP_201_CREATED)
-#         else:
-#             return Response(serializer.error_messages, status=status.HTTP_400_BAD_REQUEST)
-
-class GroceryLikeView(APIView):   # 게시글 좋아요
-    permission_classes = [IsOwnerOrReadOnly]
-    
-    def post(self, request, post_id):
-        post = get_object_or_404(Grocery, pk=post_id)
-        serializer = GroceryLikeSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save(user=request.user, post=post)
-            post.is_liked = False if post.is_liked else True
-            post.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        else:
-            return Response(serializer.error_messages, status=status.HTTP_400_BAD_REQUEST)
-
-
-
-### Delivery 좋아요 기능 ###
-
+#게시글 좋아요
 class DeliveryLikeView(APIView):
     permission_classes = [IsOwnerOrReadOnly]
 
@@ -351,27 +291,43 @@ class DeliveryLikeView(APIView):
         else:
             return Response(serializer.error_messages, status=status.HTTP_400_BAD_REQUEST)
         
-class DeliveryApplicationView(APIView):
-    def post(self, request, post_id):
-        post = get_object_or_404(Delivery, pk=post_id)
-        serializer = DeliveryApplicationSerializer(data={'user': request.user.id, 'post': post_id})
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-class GroceryApplicationView(APIView):
+class GroceryLikeView(APIView):   # 게시글 좋아요
+    permission_classes = [IsOwnerOrReadOnly]
+    
     def post(self, request, post_id):
         post = get_object_or_404(Grocery, pk=post_id)
-        serializer = GroceryApplicationSerializer(data={'user': request.user.id, 'post': post_id})
+        serializer = GroceryLikeSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            serializer.save(user=request.user, post=post)
+            post.is_liked = False if post.is_liked else True
+            post.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        
+            return Response(serializer.error_messages, status=status.HTTP_400_BAD_REQUEST)
 
+# #게시글 신청
+# class DeliveryApplicationView(APIView):
+#     permission_classes = [IsOwnerOrReadOnly]
+#     def post(self, request, post_id):
+#         post = get_object_or_404(Delivery, pk=post_id)
+#         serializer = DeliveryApplicationSerializer(data={'user': request.user.id, 'post': post_id})
+#         if serializer.is_valid():
+#             serializer.save()
+#             return Response(serializer.data, status=status.HTTP_201_CREATED)
+#         else:
+#             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# class GroceryApplicationView(APIView):
+#     permission_classes = [IsOwnerOrReadOnly]
+#     def post(self, request, post_id):
+#         post = get_object_or_404(Grocery, pk=post_id)
+#         serializer = GroceryApplicationSerializer(data={'user': request.user.id, 'post': post_id})
+#         if serializer.is_valid():
+#             serializer.save()
+#             return Response(serializer.data, status=status.HTTP_201_CREATED)
+#         else:
+#             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
 # 마이페이지
 class UserProfileView(APIView):
     def get(self, request):
@@ -439,7 +395,7 @@ class UserProfileView(APIView):
 
         return Response(data, status=status.HTTP_200_OK)
 
-
+#최근검색어저장
 class RecentSearchView(APIView):
     # 최대 저장 검색어 개수
     MAX_RECENT_SEARCHES = 5
@@ -460,3 +416,34 @@ class RecentSearchView(APIView):
         recent_searches = RecentSearchView.add_to_recent_searches(request.user, search_query)
 
         return Response({'recent_searches': recent_searches}, status=status.HTTP_200_OK)
+    
+
+
+
+
+
+
+#게시글 신청
+class DeliveryApplicationView(APIView):
+    permission_classes = [IsOwnerOrReadOnly]
+    
+    def post(self, request, post_id):
+        post = get_object_or_404(Delivery, pk=post_id)
+        serializer = DeliveryApplicationSerializer(data={'post': post_id})
+        if serializer.is_valid():
+            serializer.save(user=request.user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+class GroceryApplicationView(APIView):
+    permission_classes = [IsOwnerOrReadOnly]
+    
+    def post(self, request, post_id):
+        post = get_object_or_404(Grocery, pk=post_id)
+        serializer = GroceryApplicationSerializer(data={'post': post_id})
+        if serializer.is_valid():
+            serializer.save(user=request.user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

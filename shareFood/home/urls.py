@@ -8,7 +8,6 @@ app_name = 'home'
 router = DefaultRouter()
 router.register(r'groceries', GroceryViewSet)
 router.register(r'deliveries', DeliveryViewSet)
-# router.register(r'my-posts', MyPostsViewSet, basename='my-posts')
 
 urlpatterns = [
     path('', include(router.urls)),
@@ -23,8 +22,6 @@ urlpatterns = [
     # 식료품 댓글 삭제, 수정
     path('groceries/<int:post_id>/comments/<int:comment_id>/', GroceryCommentDetailView.as_view(), name='delivery-comments-create'),
 
-    # path('deliveries/recentsearch/', DeliveryViewSet.as_view({'get': 'recent_searches_list'}), name='recent_search_list'),
-    
     # 식료품 좋아요 기능
     path('groceries/<int:post_id>/like/', GroceryLikeView.as_view()),
 

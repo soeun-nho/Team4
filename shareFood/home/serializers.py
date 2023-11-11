@@ -2,6 +2,8 @@
 from rest_framework import serializers
 from .models import *
 
+
+#게시글
 class DeliverySerializer(serializers.ModelSerializer):
     user = serializers.CharField(source='user.name', read_only=True)
     like_cnt = serializers.IntegerField(source='delivery_like.count', read_only=True)
@@ -17,22 +19,6 @@ class DeliverySerializer(serializers.ModelSerializer):
         comments = DeliveryComment.objects.filter(post=obj)
         serializer = DeliveryCommentSerializer(comments, many=True)
         return serializer.data
-
-
-class DeliveryCommentSerializer(serializers.ModelSerializer):
-    user = serializers.CharField(source='user.name', read_only=True)
-    class Meta:
-        model = DeliveryComment
-        fields = ['id', 'post_id', 'user', 'created_at', 'content']
-
-
-class GroceryCommentSerializer(serializers.ModelSerializer):
-    user = serializers.CharField(source='user.name', read_only=True)
-    class Meta:
-        model = GroceryComment
-        fields = ['id', 'post_id', 'user', 'created_at', 'content']
-
-
 
 class GrocerySerializer(serializers.ModelSerializer):
     user = serializers.CharField(source='user.name', read_only=True)
@@ -51,8 +37,21 @@ class GrocerySerializer(serializers.ModelSerializer):
         return serializer.data
 
 
+#댓글
+class DeliveryCommentSerializer(serializers.ModelSerializer):
+    user = serializers.CharField(source='user.name', read_only=True)
+    class Meta:
+        model = DeliveryComment
+        fields = ['id', 'post_id', 'user', 'created_at', 'content']
+
+class GroceryCommentSerializer(serializers.ModelSerializer):
+    user = serializers.CharField(source='user.name', read_only=True)
+    class Meta:
+        model = GroceryComment
+        fields = ['id', 'post_id', 'user', 'created_at', 'content']
 
 
+#좋아요
 class GroceryLikeSerializer(serializers.ModelSerializer):
     user = serializers.CharField(source='user.name', read_only=True)
 
@@ -76,7 +75,6 @@ class GroceryLikeSerializer(serializers.ModelSerializer):
             post.save()
         
         return grocery_like
-
 
 class DeliveryLikeSerializer(serializers.ModelSerializer):
     user = serializers.CharField(source='user.name', read_only=True)
@@ -103,6 +101,7 @@ class DeliveryLikeSerializer(serializers.ModelSerializer):
         return delivery_like
     
 
+#신청
 class DeliveryApplicationSerializer(serializers.ModelSerializer):
     user = serializers.CharField(source='user.name', read_only=True)
 
@@ -116,3 +115,4 @@ class GroceryApplicationSerializer(serializers.ModelSerializer):
     class Meta:
         model = GroceryApplication
         fields = '__all__'
+
