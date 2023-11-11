@@ -4,6 +4,8 @@ from django.db import models
 from accounts.models import User
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
+from geopy.distance import distance
+
 
 #게시글
 class Delivery(models.Model):

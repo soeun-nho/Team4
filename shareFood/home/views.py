@@ -12,6 +12,7 @@ from rest_framework.decorators import api_view
 from rest_framework.views import APIView
 
 from django.db.models import Q
+from math import cos, radians
 
 #권한설정
 class IsOwnerOrReadOnly(permissions.BasePermission):
@@ -82,6 +83,10 @@ class DeliveryViewSet(viewsets.ModelViewSet):
     def list(self, request, *args, **kwargs):
         search_query = request.query_params.get('search', None)
         is_completed = request.query_params.get('is_completed', None)
+        latitude = request.query_params.get('latitude', None)
+        longitude = request.query_params.get('longitude', None)
+        radius = request.query_params.get('radius', None)
+
 
         # 기본 queryset은 모든 게시글
         queryset = self.queryset.all()
@@ -93,7 +98,24 @@ class DeliveryViewSet(viewsets.ModelViewSet):
         if is_completed is not None:
             queryset = queryset.filter(is_completed=is_completed.lower() == 'true')
 
-        
+        #위치 정보를 이용한 필터링
+        if latitude is not None and longitude is not None and radius is not None:
+        #  # 일반적인 경우의 위치 필터링
+        #     queryset = queryset.filter(
+        #         latitude__range=(float(latitude) - float(radius), float(latitude) + float(radius)),
+        #         longitude__range=(float(longitude) - float(radius), float(longitude) + float(radius)),
+        #     )
+        # 일반적인 FloatField를 사용하는 경우
+            min_latitude = float(latitude) - (float(radius) / 111.32)  # 1도는 약 111.32km
+            max_latitude = float(latitude) + (float(radius) / 111.32)
+            min_longitude = float(longitude) - (float(radius) / (111.32 * cos(radians(float(latitude)))))
+            max_longitude = float(longitude) + (float(radius) / (111.32 * cos(radians(float(latitude)))))
+
+            queryset = queryset.filter(
+                latitude__range=(min_latitude, max_latitude),
+                longitude__range=(min_longitude, max_longitude),
+            )
+
         # 검색이 이루어졌을 때 최근 검색어를 저장
         if request.user.is_authenticated and search_query is not None:
             RecentSearchView.add_to_recent_searches(request.user, search_query)
@@ -471,53 +493,5 @@ class GroceryApplicationView(APIView):
 
 #         return Response(serializer.data)
 
-from haversine import haversine, Unit
 
-
-class DeliveryNearInfoView(APIView):
-    def get(self, request, post_id):
-        current_post = get_object_or_404(Delivery, pk=post_id)
-        current_latitude = current_post.latitude
-        current_longitude = current_post.longitude
-        current_position = (current_latitude, current_longitude)
-
-        # Define the proximity range
-        proximity_distance = 2  # Assume 2 kilometers
-
-        # Find other posts within the proximity range
-        position_infos = Delivery.objects.exclude(pk=post_id).filter(
-            latitude__range=(current_latitude - 0.01, current_latitude + 0.01),
-            longitude__range=(current_longitude - 0.015, current_longitude + 0.015)
-        )
-
-        near_position_infos = [info for info in position_infos
-                              if haversine(current_position, (info.latitude, info.longitude)) <= proximity_distance]
-        
-        serialized_data = DeliverySerializer(near_position_infos, many=True)
-
-        return Response(serialized_data.data)
-
-
-class GroceryNearInfoView(APIView):
-    def get(self, request, post_id):
-        current_post = get_object_or_404(Grocery, pk=post_id)
-        current_latitude = current_post.latitude
-        current_longitude = current_post.longitude
-        current_position = (current_latitude, current_longitude)
-
-        # Define the proximity range
-        proximity_distance = 2  # Assume 2 kilometers
-
-        # Find other posts within the proximity range
-        position_infos = Grocery.objects.exclude(pk=post_id).filter(
-            latitude__range=(current_latitude - 0.01, current_latitude + 0.01),
-            longitude__range=(current_longitude - 0.015, current_longitude + 0.015)
-        )
-
-        near_position_infos = [info for info in position_infos
-                              if haversine(current_position, (info.latitude, info.longitude)) <= proximity_distance]
-        
-        serialized_data = GrocerySerializer(near_position_infos, many=True)
-
-        return Response(serialized_data.data)
    
