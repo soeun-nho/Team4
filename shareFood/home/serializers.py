@@ -13,7 +13,7 @@ class DeliverySerializer(serializers.ModelSerializer):
         model = Delivery
         fields = ['id', 'user', 'title', 'content', 'location',
                 'price', 'created_at', 'image', 'link',
-                'is_completed', 'comments', 'like_cnt', 'is_liked']
+                'is_completed', 'comments', 'like_cnt', 'is_liked', 'latitude', 'longitude']
     
     def get_comments(self, obj):
         comments = DeliveryComment.objects.filter(post=obj)
@@ -116,3 +116,9 @@ class GroceryApplicationSerializer(serializers.ModelSerializer):
         model = GroceryApplication
         fields = '__all__'
 
+
+
+class PositionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Position
+        fields = '__all__'

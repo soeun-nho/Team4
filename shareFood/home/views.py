@@ -447,3 +447,56 @@ class GroceryApplicationView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# from django.contrib.gis.geos import Point
+# from django.contrib.gis.measure import D
+# from .models import Position
+# from .serializers import PositionSerializer
+
+
+
+# class PositionView(APIView):
+#     permission_classes = [IsOwnerOrReadOnly]
+
+#     def get(self, request):
+#         user_latitude = float(request.query_params.get('latitude'))
+#         user_longitude = float(request.query_params.get('longitude'))
+
+#         user_location = Point(user_longitude, user_latitude, srid=4326)  # SRID는 위경도의 좌표 체계를 의미
+        
+#         # 반경 내의 위치 가져오기
+#         locations_within_radius = Position.objects.filter(geolocation__distance_lte=(user_location, D(km=5)))
+#         serializer = PositionSerializer(locations_within_radius, many=True)
+
+#         return Response(serializer.data)
+
+from haversine import haversine, Unit
+
+
+class NearInfoView(APIView):
+    def get(self, request, post_id):
+        #try:
+        current_post = get_object_or_404(Delivery, pk=post_id)
+        current_latitude = current_post.latitude
+        current_longitude = current_post.longitude
+        current_position = (current_latitude, current_longitude)
+
+        # Define the proximity range
+        proximity_distance = 2  # Assume 2 kilometers
+
+        # Find other posts within the proximity range
+        position_infos = Delivery.objects.exclude(pk=post_id).filter(
+            latitude__range=(current_latitude - 0.01, current_latitude + 0.01),
+            longitude__range=(current_longitude - 0.015, current_longitude + 0.015)
+        )
+
+        near_position_infos = [info for info in position_infos
+                              if haversine(current_position, (info.latitude, info.longitude)) <= proximity_distance]
+        
+        serialized_data = DeliverySerializer(near_position_infos, many=True)
+
+        return Response(serialized_data.data)
+        
+        # return near_position_infos
+   

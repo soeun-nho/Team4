@@ -21,6 +21,9 @@ urlpatterns = [
     path('groceries/<int:post_id>/comments/', GroceryCommentView.as_view(), name='grocery-comments-list'),
     # 식료품 댓글 삭제, 수정
     path('groceries/<int:post_id>/comments/<int:comment_id>/', GroceryCommentDetailView.as_view(), name='delivery-comments-create'),
+    path('groceries/<int:post_id>/location/', NearInfoView.as_view()),
+    path('deliveries/<int:post_id>/location/', NearInfoView.as_view()),
+
 
     # 식료품 좋아요 기능
     path('groceries/<int:post_id>/like/', GroceryLikeView.as_view()),
