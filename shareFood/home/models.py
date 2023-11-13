@@ -6,7 +6,6 @@ from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from geopy.distance import distance
 
-
 #게시글
 class Delivery(models.Model):
     id = models.AutoField(primary_key=True, null=False, blank=False)
@@ -43,6 +42,30 @@ class Grocery(models.Model):
 
     def __str__(self):
         return self.title
+
+#최근검색어
+class RecentSearch(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
+    query = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    MAX_RECENT_SEARCHES = 10
+
+    class Meta:
+        ordering = ['-created_at']
+
+    @classmethod
+    def add_search(cls, user, query):
+        if user.is_authenticated and query:
+            # 해당 사용자의 검색어 개수 확인
+            recent_searches_count = cls.objects.filter(user=user).count()
+
+            # 최대 개수 초과 시 오래된 검색어 삭제 후 추가
+            if recent_searches_count >= cls.MAX_RECENT_SEARCHES:
+                cls.objects.filter(user=user).earliest('created_at').delete()
+
+            recent_search = cls(user=user, query=query)
+            recent_search.save()
 
 #댓글
 class DeliveryComment(models.Model):
@@ -87,7 +110,6 @@ class DeliveryApplication(models.Model):
     def __str__(self):
         return f"{self.user.name} applied on {self.post}"
 
-    
 class GroceryApplication(models.Model):
     user = models.ForeignKey(User, null=True, on_delete=models.CASCADE)
     post = models.ForeignKey(Grocery, null=True, on_delete=models.CASCADE, related_name='grocery_applications')
@@ -95,28 +117,3 @@ class GroceryApplication(models.Model):
 
     def __str__(self):
         return f"{self.user.name} applied on {self.post}"
-    
-    
-#최근검색어
-class RecentSearch(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
-    query = models.CharField(max_length=255)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    MAX_RECENT_SEARCHES = 10
-
-    class Meta:
-        ordering = ['-created_at']
-
-    @classmethod
-    def add_search(cls, user, query):
-        if user.is_authenticated and query:
-            # 해당 사용자의 검색어 개수 확인
-            recent_searches_count = cls.objects.filter(user=user).count()
-
-            # 최대 개수 초과 시 오래된 검색어 삭제 후 추가
-            if recent_searches_count >= cls.MAX_RECENT_SEARCHES:
-                cls.objects.filter(user=user).earliest('created_at').delete()
-
-            recent_search = cls(user=user, query=query)
-            recent_search.save()

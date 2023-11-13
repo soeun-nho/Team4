@@ -102,14 +102,13 @@ class DeliveryLikeSerializer(serializers.ModelSerializer):
         
         return delivery_like
 
-
 #신청
 class DeliveryApplicationSerializer(serializers.ModelSerializer):
     user = serializers.CharField(source='user.name', read_only=True)
 
     class Meta:
         model = DeliveryApplication
-        fields = '__all__'
+        fields = '__all_'
 
 class GroceryApplicationSerializer(serializers.ModelSerializer):
     user = serializers.CharField(source='user.name', read_only=True)

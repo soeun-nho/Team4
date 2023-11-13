@@ -100,12 +100,6 @@ class DeliveryViewSet(viewsets.ModelViewSet):
 
         #위치 정보를 이용한 필터링
         if latitude is not None and longitude is not None and radius is not None:
-        #  # 일반적인 경우의 위치 필터링
-        #     queryset = queryset.filter(
-        #         latitude__range=(float(latitude) - float(radius), float(latitude) + float(radius)),
-        #         longitude__range=(float(longitude) - float(radius), float(longitude) + float(radius)),
-        #     )
-        # 일반적인 FloatField를 사용하는 경우
             min_latitude = float(latitude) - (float(radius) / 111.32)  # 1도는 약 111.32km
             max_latitude = float(latitude) + (float(radius) / 111.32)
             min_longitude = float(longitude) - (float(radius) / (111.32 * cos(radians(float(latitude)))))
@@ -136,10 +130,6 @@ class GroceryViewSet(viewsets.ModelViewSet):
     queryset = Grocery.objects.all().order_by('-id') # 최근글이 앞으로 오도록 정렬(default)
     serializer_class = GrocerySerializer
     permission_classes = [IsOwnerOrReadOnly]
-    
-
-    #def perform_create(self, serializer):
-        #serializer.save(user = self.request.user)
 
     def perform_create(self, serializer):
         if not self.request.user.is_authenticated:
@@ -200,12 +190,6 @@ class GroceryViewSet(viewsets.ModelViewSet):
 
         #위치 정보를 이용한 필터링
         if latitude is not None and longitude is not None and radius is not None:
-        #  # 일반적인 경우의 위치 필터링
-        #     queryset = queryset.filter(
-        #         latitude__range=(float(latitude) - float(radius), float(latitude) + float(radius)),
-        #         longitude__range=(float(longitude) - float(radius), float(longitude) + float(radius)),
-        #     )
-        # 일반적인 FloatField를 사용하는 경우
             min_latitude = float(latitude) - (float(radius) / 111.32)  # 1도는 약 111.32km
             max_latitude = float(latitude) + (float(radius) / 111.32)
             min_longitude = float(longitude) - (float(radius) / (111.32 * cos(radians(float(latitude)))))
@@ -232,7 +216,27 @@ class GroceryViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
     
+#최근검색어저장
+class RecentSearchView(APIView):
+    # 최대 저장 검색어 개수
+    MAX_RECENT_SEARCHES = 5
 
+    @staticmethod
+    def add_to_recent_searches(user, query):
+        # 최근 검색어 저장
+        RecentSearch.add_search(user, query)
+        recent_searches = RecentSearch.objects.filter(user=user).order_by('-created_at')[:RecentSearchView.MAX_RECENT_SEARCHES]
+        return [search.query for search in recent_searches]
+
+    @api_view(['GET'])
+    def recent_searches_list(request):
+        if not request.user.is_authenticated:
+            return Response({"message": "로그인을 해주세요."}, status=status.HTTP_401_UNAUTHORIZED)
+
+        search_query = request.query_params.get('search', None)
+        recent_searches = RecentSearchView.add_to_recent_searches(request.user, search_query)
+
+        return Response({'recent_searches': recent_searches}, status=status.HTTP_200_OK)
 
 #댓글 CR
 class DeliveryCommentView(APIView):   # 댓글 리스트
@@ -350,30 +354,32 @@ class GroceryLikeView(APIView):   # 게시글 좋아요
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.error_messages, status=status.HTTP_400_BAD_REQUEST)
-
-# #게시글 신청
-# class DeliveryApplicationView(APIView):
-#     permission_classes = [IsOwnerOrReadOnly]
-#     def post(self, request, post_id):
-#         post = get_object_or_404(Delivery, pk=post_id)
-#         serializer = DeliveryApplicationSerializer(data={'user': request.user.id, 'post': post_id})
-#         if serializer.is_valid():
-#             serializer.save()
-#             return Response(serializer.data, status=status.HTTP_201_CREATED)
-#         else:
-#             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-# class GroceryApplicationView(APIView):
-#     permission_classes = [IsOwnerOrReadOnly]
-#     def post(self, request, post_id):
-#         post = get_object_or_404(Grocery, pk=post_id)
-#         serializer = GroceryApplicationSerializer(data={'user': request.user.id, 'post': post_id})
-#         if serializer.is_valid():
-#             serializer.save()
-#             return Response(serializer.data, status=status.HTTP_201_CREATED)
-#         else:
-#             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
+#게시글 신청
+class DeliveryApplicationView(APIView):
+    permission_classes = [IsOwnerOrReadOnly]
+    
+    def post(self, request, post_id):
+        post = get_object_or_404(Delivery, pk=post_id)
+        serializer = DeliveryApplicationSerializer(data={'post': post_id})
+        if serializer.is_valid():
+            serializer.save(user=request.user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+class GroceryApplicationView(APIView):
+    permission_classes = [IsOwnerOrReadOnly]
+    
+    def post(self, request, post_id):
+        post = get_object_or_404(Grocery, pk=post_id)
+        serializer = GroceryApplicationSerializer(data={'post': post_id})
+        if serializer.is_valid():
+            serializer.save(user=request.user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
 # 마이페이지
 class UserProfileView(APIView):
     def get(self, request):
@@ -389,7 +395,7 @@ class UserProfileView(APIView):
             'phone': user.phone,
         }
 
-         # Grocery 모델에서 모든 데이터 가져오기
+        # Grocery 모델에서 모든 데이터 가져오기
         grocery_all = Grocery.objects.filter(user=request.user)
         grocery_serializer_all = GrocerySerializer(grocery_all, many=True)
 
@@ -417,7 +423,7 @@ class UserProfileView(APIView):
         liked_deliveries_data = Delivery.objects.filter(id__in=liked_delivery_ids)
         liked_deliveries_serializer = DeliverySerializer(liked_deliveries_data, many=True)
 
-         # 사용자가 신청한 Grocery 게시글 조회
+        # 사용자가 신청한 Grocery 게시글 조회
         grocery_applications = GroceryApplication.objects.filter(user=request.user)
         grocery_applications_serializer = GroceryApplicationSerializer(grocery_applications, many=True)
 
@@ -440,82 +446,3 @@ class UserProfileView(APIView):
 
 
         return Response(data, status=status.HTTP_200_OK)
-
-#최근검색어저장
-class RecentSearchView(APIView):
-    # 최대 저장 검색어 개수
-    MAX_RECENT_SEARCHES = 5
-
-    @staticmethod
-    def add_to_recent_searches(user, query):
-        # 최근 검색어 저장
-        RecentSearch.add_search(user, query)
-        recent_searches = RecentSearch.objects.filter(user=user).order_by('-created_at')[:RecentSearchView.MAX_RECENT_SEARCHES]
-        return [search.query for search in recent_searches]
-
-    @api_view(['GET'])
-    def recent_searches_list(request):
-        if not request.user.is_authenticated:
-            return Response({"message": "로그인을 해주세요."}, status=status.HTTP_401_UNAUTHORIZED)
-
-        search_query = request.query_params.get('search', None)
-        recent_searches = RecentSearchView.add_to_recent_searches(request.user, search_query)
-
-        return Response({'recent_searches': recent_searches}, status=status.HTTP_200_OK)
-    
-
-
-
-
-
-
-#게시글 신청
-class DeliveryApplicationView(APIView):
-    permission_classes = [IsOwnerOrReadOnly]
-    
-    def post(self, request, post_id):
-        post = get_object_or_404(Delivery, pk=post_id)
-        serializer = DeliveryApplicationSerializer(data={'post': post_id})
-        if serializer.is_valid():
-            serializer.save(user=request.user)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        
-class GroceryApplicationView(APIView):
-    permission_classes = [IsOwnerOrReadOnly]
-    
-    def post(self, request, post_id):
-        post = get_object_or_404(Grocery, pk=post_id)
-        serializer = GroceryApplicationSerializer(data={'post': post_id})
-        if serializer.is_valid():
-            serializer.save(user=request.user)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-# from django.contrib.gis.geos import Point
-# from django.contrib.gis.measure import D
-# from .models import Position
-# from .serializers import PositionSerializer
-
-
-
-# class PositionView(APIView):
-#     permission_classes = [IsOwnerOrReadOnly]
-
-#     def get(self, request):
-#         user_latitude = float(request.query_params.get('latitude'))
-#         user_longitude = float(request.query_params.get('longitude'))
-
-#         user_location = Point(user_longitude, user_latitude, srid=4326)  # SRID는 위경도의 좌표 체계를 의미
-        
-#         # 반경 내의 위치 가져오기
-#         locations_within_radius = Position.objects.filter(geolocation__distance_lte=(user_location, D(km=5)))
-#         serializer = PositionSerializer(locations_within_radius, many=True)
-
-#         return Response(serializer.data)
-
-
-   

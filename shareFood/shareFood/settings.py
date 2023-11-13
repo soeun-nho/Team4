@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/4.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
-
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -38,13 +38,12 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "accounts",
     "home",
+    
     #DRF
     'rest_framework',
     'rest_framework.authtoken',
-
     #rest_auth (로그인)
     'dj_rest_auth',
-
     #allauth (회원가입)
     'django.contrib.sites',
     'allauth',
@@ -61,21 +60,14 @@ REST_FRAMEWORK = {
     ],
     # CamelCaseJSON 관련 설정
     'DEFAULT_RENDERER_CLASSES': (
-        'djangorestframework_camel_case.render.CamelCaseJSONRenderer', 
-        'djangorestframework_camel_case.render.CamelCaseBrowsableAPIRenderer',
+    'djangorestframework_camel_case.render.CamelCaseJSONRenderer', 
+    'djangorestframework_camel_case.render.CamelCaseBrowsableAPIRenderer',
     ),
     'DEFAULT_PARSER_CLASSES': (
-        'djangorestframework_camel_case.parser.CamelCaseFormParser', 
-        'djangorestframework_camel_case.parser.CamelCaseMultiPartParser',
-        'djangorestframework_camel_case.parser.CamelCaseJSONParser',
+    'djangorestframework_camel_case.parser.CamelCaseFormParser', 
+    'djangorestframework_camel_case.parser.CamelCaseMultiPartParser',
+    'djangorestframework_camel_case.parser.CamelCaseJSONParser',
     ),
-    # #PATCH 허용 테스트
-    # 'DEFAULT_RENDERER_CLASSES': (
-    #     'rest_framework.renderers.JSONRenderer',
-    # ),
-    # 'DEFAULT_PARSER_CLASSES': (
-    #     'rest_framework.parsers.JSONParser',
-    # ),
     #퍼미션 관련
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
@@ -93,14 +85,28 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware', 
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
-    "django.middleware.common.CommonMiddleware",
+    # "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
 ]
-CORS_ORIGIN_ALLOW_ALL = True # 모든 호스트 허용
+#CORS_ORIGIN_ALLOW_ALL = True # 모든 호스트 허용
+
+CORS_ORIGIN_WHITELIST = (
+"http://localhost:8080",
+"http://localhost:8000",
+"http://localhost:3000",
+
+"http://127.0.0.1:9000",
+"http://127.0.0.1:3000",
+"http://127.0.0.1:8000"
+)
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+]
 
 CORS_ALLOW_METHODS = [
 'DELETE',
@@ -109,6 +115,17 @@ CORS_ALLOW_METHODS = [
 'PATCH',
 'POST',
 'PUT',
+]
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
 ]
 
 ROOT_URLCONF = "shareFood.urls"
@@ -177,7 +194,6 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-import os
 STATIC_URL = "static/"
 
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

@@ -1,5 +1,7 @@
 from django.contrib import admin
-#admin site에 커스텀 사용자 등록
-from django.contrib.auth import get_user_model #함수 이용해서 가져옴
+
+# Register your models here.
+from django.contrib.auth import get_user_model #커스텀사용자
 user = get_user_model()
-admin.site.register(user) #관리자사이트에 등록
+
+admin.site.register(user) 
